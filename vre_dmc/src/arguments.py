@@ -96,6 +96,8 @@ def parse_args():
 	parser.add_argument('--de_num', default=0, type=int)
 	parser.add_argument('--log_dir', default='logs_VRE_walkerrun_common_lr0.0001_upf1_obscat_autopara0.02_Q', type=str)
 	parser.add_argument('--save_video', default=False, action='store_true')
+	parser.add_argument('--save_buffer', default=False, type=str)
+	parser.add_argument('--buffer_save_freq', default='70k', type=str)
 
 	args = parser.parse_args()
 

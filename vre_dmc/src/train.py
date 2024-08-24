@@ -12,7 +12,7 @@ from video import VideoRecorder
 from torch.utils.tensorboard import SummaryWriter
 from pyvirtualdisplay import Display
 
-def evaluate(env, agent, video, num_episodes, L, step, test_env=False): 
+def evaluate(env, agent, video, num_episodes, L, step, test_buffer=None, test_env=False): 
 	episode_rewards = []
 	for i in range(num_episodes):
 		obs = env.reset()
@@ -22,9 +22,12 @@ def evaluate(env, agent, video, num_episodes, L, step, test_env=False):
 		while not done:
 			with utils.eval_mode(agent):
 				action = agent.select_action(obs)
-			obs, reward, done, _ = env.step(action)
+			next_obs, reward, done, _ = env.step(action)
 			video.record(env)
+			if test_buffer is not None:
+				test_buffer.add(obs, action, reward, next_obs)
 			episode_reward += reward
+			obs = next_obs
 
 		if L is not None:
 			_test_env = '_test_env' if test_env else ''
@@ -99,10 +102,29 @@ def main(args):
 	replay_buffer = utils.ReplayBuffer(
 		obs_shape=env.observation_space.shape,
 		action_shape=env.action_space.shape,
-		capacity=args.train_steps//5,
+		capacity=args.train_steps // 2,
 		batch_size=args.batch_size,
 		encoder_multi=args.encoder_multi
 	)
+	test_buffer_1 = None
+	test_buffer_2 = None
+	test_buffer_3 = None
+	if args.save_buffer:
+		test_buffer_1 = utils.Test_Buffer(
+			obs_shape=env.observation_space.shape,
+			action_shape=env.action_space.shape,
+			capacity=args.train_steps // 6,
+		)
+		test_buffer_2 = utils.Test_Buffer(
+			obs_shape=env.observation_space.shape,
+			action_shape=env.action_space.shape,
+			capacity=args.train_steps // 6,
+		)
+		test_buffer_3 = utils.Test_Buffer(
+			obs_shape=env.observation_space.shape,
+			action_shape=env.action_space.shape,
+			capacity=args.train_steps // 6,
+		)	
 	cropped_obs_shape = (3*args.frame_stack, args.image_crop_size, args.image_crop_size)    #(9, 84, 84)
 	print('Observations:', env.observation_space.shape)
 	print('Cropped observations:', cropped_obs_shape)
@@ -116,7 +138,7 @@ def main(args):
 	L = Logger(work_dir)
 	start_time = time.time()
 	kl_loss = None
-	eval_array = np.zeros(args.train_steps//10000)    # 记录eval的reward
+	eval_array = np.zeros(args.train_steps//args.eval_freq)    # 记录eval的reward
 	cof = 1
 	for step in range(start_step, args.train_steps+1):
 		if done or step == args.train_steps:
@@ -132,21 +154,21 @@ def main(args):
 				eval_reward = evaluate(env, agent, video, args.eval_episodes, L, step)
 				writter.add_scalar('eval_reward', eval_reward, step)
 				eval_array[step//args.eval_freq] = eval_reward
-				if step >= 140000:
+				if step >= 200000:
 					pos = step // args.eval_freq
 					cof = (((eval_array[pos]+eval_array[pos-1])-(eval_array[pos-2]+eval_array[pos-3]))
 								/(eval_array[pos]+eval_array[pos-1]))
 					L.log('eval/cof', cof, step)
 				if test_env_1 is not None:
-					test_reward_1 = evaluate(test_env_1, agent, video, args.eval_episodes, L, step, test_env=True)
+					test_reward_1 = evaluate(test_env_1, agent, video, args.eval_episodes, L, step, test_buffer_1, test_env=True)
 					writter.add_scalar('test_reward'+args.eval_mode_1, test_reward_1, step)
 				L.dump(step)
 				if test_env_2 is not None:
-					test_reward_2 = evaluate(test_env_2, agent, video, args.eval_episodes, L, step, test_env=True)
+					test_reward_2 = evaluate(test_env_2, agent, video, args.eval_episodes, L, step, test_buffer_2, test_env=True)
 					writter.add_scalar('test_reward'+args.eval_mode_2, test_reward_2, step)				
 				L.dump(step)
 				if test_env_3 is not None:
-					test_reward_3 = evaluate(test_env_3, agent, video, args.eval_episodes, L, step, test_env=True)
+					test_reward_3 = evaluate(test_env_3, agent, video, args.eval_episodes, L, step, test_buffer_3, test_env=True)
 					writter.add_scalar('test_reward'+args.eval_mode_3, test_reward_3, step)				
 				L.dump(step)
 				if kl_loss is not None:
@@ -156,6 +178,11 @@ def main(args):
 			# Save agent periodically
 			if step > start_step and step % args.save_freq == 0: 
 				torch.save(agent, os.path.join(model_dir, f'{step}.pt'))
+				if args.save_buffer and step % args.buffer_save_freq == 0:
+					torch.save(replay_buffer, os.path.join(work_dir, f'replay_buffer_{step}.pt'))
+					torch.save(test_buffer_1, os.path.join(work_dir, f'test_buffer_1_{step}.pt'))
+					torch.save(test_buffer_2, os.path.join(work_dir, f'test_buffer_2_{step}.pt'))
+					torch.save(test_buffer_3, os.path.join(work_dir, f'test_buffer_3_{step}.pt'))
 
 			L.log('train/episode_reward', episode_reward, step)
 			writter.add_scalar('train_episode_reward', episode_reward, step)

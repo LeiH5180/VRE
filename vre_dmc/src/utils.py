@@ -208,6 +208,34 @@ class ReplayBuffer(object):
             return torch.as_tensor([]).cuda(de_num).float(), torch.as_tensor([]).cuda(de_num).float()    
 
 
+class Test_Buffer(object):
+    """Buffer to store environment transitions"""
+
+    def __init__(self, obs_shape, action_shape, capacity, prefill=True):
+        self.capacity = capacity
+
+        self._obses = []
+        if prefill:
+            self._obses = prefill_memory(self._obses, capacity, obs_shape)
+        self.actions = np.empty((capacity, *action_shape), dtype=np.float32)
+        self.rewards = np.empty((capacity, 1), dtype=np.float32)
+
+        self.idx = 0
+        self.full = False
+
+    def add(self, obs, action, reward, next_obs):
+        obses = (obs, next_obs)
+        if self.idx >= len(self._obses):
+            self._obses.append(obses)
+        else:
+            self._obses[self.idx] = (obses)
+        np.copyto(self.actions[self.idx], action)
+        np.copyto(self.rewards[self.idx], reward)
+
+        self.idx = (self.idx + 1) % self.capacity
+        self.full = self.full or self.idx == 0
+
+
 class LazyFrames(object):
     def __init__(self, frames, extremely_lazy=True):
         self._frames = frames
