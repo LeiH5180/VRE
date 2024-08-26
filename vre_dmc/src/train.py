@@ -178,11 +178,11 @@ def main(args):
 			# Save agent periodically
 			if step > start_step and step % args.save_freq == 0: 
 				torch.save(agent, os.path.join(model_dir, f'{step}.pt'))
-				if args.save_buffer and step % args.buffer_save_freq == 0:
-					torch.save(replay_buffer, os.path.join(work_dir, f'replay_buffer_{step}.pt'))
-					torch.save(test_buffer_1, os.path.join(work_dir, f'test_buffer_1_{step}.pt'))
-					torch.save(test_buffer_2, os.path.join(work_dir, f'test_buffer_2_{step}.pt'))
-					torch.save(test_buffer_3, os.path.join(work_dir, f'test_buffer_3_{step}.pt'))
+			if args.save_buffer and step % args.buffer_save_freq == 0:
+				torch.save(replay_buffer, os.path.join(work_dir, f'replay_buffer_{step}.pt'))
+				torch.save(test_buffer_1, os.path.join(work_dir, f'test_buffer_1_{step}.pt'))
+				torch.save(test_buffer_2, os.path.join(work_dir, f'test_buffer_2_{step}.pt'))
+				torch.save(test_buffer_3, os.path.join(work_dir, f'test_buffer_3_{step}.pt'))
 
 			L.log('train/episode_reward', episode_reward, step)
 			writter.add_scalar('train_episode_reward', episode_reward, step)
