@@ -18,8 +18,9 @@ def parse_args():
 	parser.add_argument('--if_base', default='vre', type=str)
 	parser.add_argument('--only_VRE', default=True, type=str)    # no KL_loss for actor
 	parser.add_argument('--add_VRE', default=True, type=str)
+	parser.add_argument('--double_aug', default=True, type=str)    # if conv and over
 	parser.add_argument('--over_rand', default=False, type=str)    # if rand para for overlay
-	parser.add_argument('--double_aug', default=False, type=str)    # if conv and over
+
 
 	parser.add_argument('--KL_encoder', default=False, type=str)
 	parser.add_argument('--kl_lim', default=False, type=str)
