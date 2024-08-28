@@ -7,9 +7,13 @@ import json
 import requests
 import matplotlib.pyplot as plt
 import warnings
+from arguments import parse_args
+
+args = parse_args()
+de_num = args.de_num
 warnings.filterwarnings('ignore')
 
-device = torch.device("cuda:1") if torch.cuda.is_available() else torch.device("cpu")
+device = torch.device(f"cuda:{de_num}") if torch.cuda.is_available() else torch.device("cpu")
 print(f'Using {device} for inference')
 
 class resnet_model:
