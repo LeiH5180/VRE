@@ -138,7 +138,7 @@ def main(args):
 	L = Logger(work_dir)
 	start_time = time.time()
 	kl_loss = None
-	eval_array = np.zeros(args.train_steps//args.eval_freq)    # 记录eval的reward
+	eval_array = np.zeros(args.train_steps//args.eval_freq + 1)    # 记录eval的reward
 	cof = 1
 	for step in range(start_step, args.train_steps+1):
 		if done or step == args.train_steps:
@@ -206,7 +206,7 @@ def main(args):
 		if step >= args.init_steps:
 			num_updates = args.init_steps if step == args.init_steps else 1
 			for _ in range(num_updates):
-				if args.algorithm == 'VRE':
+				if args.algorithm == 'vre':
 					# if step == 248:
 					# 	time.sleep(0.01)
 					# 	pass
