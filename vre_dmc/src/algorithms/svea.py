@@ -15,6 +15,7 @@ class SVEA(SAC):
 		self.a_alpha = args.a_alpha
 		self.b_beta = args.b_beta
 		self.g_gamma = args.g_gamma
+		self.double_aug = args.double_aug
 		if self.double_aug:
 			self.b_beta /= 2
 			self.g_gamma /= 2
@@ -27,7 +28,7 @@ class SVEA(SAC):
 								 target_Q2) - self.alpha.detach() * log_pi
 			target_Q = reward + (not_done * self.discount * target_V)
 
-		if self.a_alpha == self.b_beta:
+		if self.double_aug:
 			obs = utils.cat(obs, augmentations.random_conv(obs.clone()))
 			action = utils.cat(action, action)
 			target_Q = utils.cat(target_Q, target_Q)
