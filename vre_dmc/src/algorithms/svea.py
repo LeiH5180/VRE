@@ -15,18 +15,20 @@ class SVEA(SAC):
 		self.a_alpha = args.a_alpha
 		self.b_beta = args.b_beta
 		self.g_gamma = args.g_gamma
-
+		if self.double_aug:
+			self.b_beta /= 2
+			self.g_gamma /= 2
 
 	def update_critic(self, obs, action, reward, next_obs, not_done, L=None, step=None, obs_2=None, action_2=None):
 		with torch.no_grad():
-			_, policy_action, log_pi, _ = self.actor(next_obs) 
+			_, policy_action, log_pi, _ = self.actor(next_obs)
 			target_Q1, target_Q2 = self.critic_target(next_obs, policy_action)
 			target_V = torch.min(target_Q1,
 								 target_Q2) - self.alpha.detach() * log_pi
 			target_Q = reward + (not_done * self.discount * target_V)
 
 		if self.a_alpha == self.b_beta:
-			obs = utils.cat(obs, augmentations.random_overlay(obs.clone()))  
+			obs = utils.cat(obs, augmentations.random_conv(obs.clone()))
 			action = utils.cat(action, action)
 			target_Q = utils.cat(target_Q, target_Q)
 
