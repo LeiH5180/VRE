@@ -31,10 +31,11 @@ class VRE(SAC):
 		self.kl_beta = args.kl_beta
 		self.kl_lim = args.kl_lim
 		self.kl_tar = args.kl_tar
-		self.Vre_para = args.Vre_para
+		self.VRE_para = args.VRE_para
 		self.critic_para = args.critic_para
 		self.auto_para = args.auto_para
 		self.auto_Q = args.auto_Q
+		self.add_VRE = args.add_VRE
 
 	def update_critic(self, obs, action, reward, next_obs, not_done, L=None, step=None, obs_2=None, action_2=None, update_encoder=False):
 		with torch.no_grad():
@@ -64,6 +65,8 @@ class VRE(SAC):
 				(F.mse_loss(current_Q1, target_Q) + F.mse_loss(current_Q2, target_Q))
 
 			obs_1_aug_1 = self.overlay(obs.clone())
+			# plt.imshow(np.moveaxis(np.array(obs_1_aug_1[0][:3].cpu()),0,-1))    # show the aug figure
+			# plt.savefig('aug_1.png')
 			current_Q1_aug_1, current_Q2_aug_1 = self.critic(obs_1_aug_1, action)
 			critic_loss += self.b_beta * \
 				(F.mse_loss(current_Q1_aug_1, target_Q) + F.mse_loss(current_Q2_aug_1, target_Q))
@@ -120,7 +123,7 @@ class VRE(SAC):
 			dis_Q_1 = torch.norm((Q_ori.detach()-Q_aug_1),p=2)
 			dis_emb_1 = torch.norm((emb_ori.detach()-emb_aug_1),p=2)
 			loss_critic_encoder_5 = torch.norm((dis_Q_1/norm2_Q_ori.detach())-dis_emb_1/norm2_emb_ori.detach(),p=2)
-			loss_critic_encoder = loss_critic_encoder_5 * self.Vre_para								
+			loss_critic_encoder = loss_critic_encoder_5 * self.VRE_para								
 			# ================================================================================
 
 		else:
@@ -154,7 +157,7 @@ class VRE(SAC):
 			dis_emb_2 = torch.norm((emb_ori.detach()-emb_aug_2),p=2)
 			loss_critic_encoder_5 = (torch.norm((dis_Q_1/norm2_Q_ori.detach())-dis_emb_1/norm2_emb_ori.detach(),p=2)
 							+ torch.norm((dis_Q_2/norm2_Q_ori.detach())-dis_emb_2/norm2_emb_ori.detach(),p=2))
-			loss_critic_encoder = loss_critic_encoder_5 * self.Vre_para
+			loss_critic_encoder = loss_critic_encoder_5 * self.VRE_para
 			# =======================================================================================	
 		
 		self.critic_encoder_optimizer.zero_grad()
@@ -172,11 +175,11 @@ class VRE(SAC):
 		kl_loss = None
 
 		if self.auto_para:
-			if 0 <= cof <= 0.02 and self.Vre_para < 1:
-				self.Vre_para += 0.1
+			if 0 <= cof <= 0.02 and self.VRE_para < 1:
+				self.VRE_para += 0.1
 			else:
-				if cof < -0.02 and self.Vre_para >= 0.05:    # cof<-0.02
-					self.Vre_para /= 2
+				if cof < -0.02 and self.VRE_para >= 0.05:    # cof<-0.02
+					self.VRE_para /= 2
 
 		if self.auto_Q and step > 250000:
 			if 0 <= cof <= 0.02 and self.critic_para > 0.1:
@@ -185,7 +188,7 @@ class VRE(SAC):
 				if cof < -0.02 and self.critic_para > 1:    # cof<-0.02
 					self.critic_para /= 0.8
 		
-		if step % self.encoder_update_freq == 0:
+		if self.add_VRE and step % self.encoder_update_freq == 0:
 			obs_2, action_2 = replay_buffer.sample_encoder()
 			update_encoder = True
 
@@ -201,7 +204,7 @@ class VRE(SAC):
 			if self.double_aug:
 				mu_2, _, _, log_std_2 = self.actor(obs_aug_2[0:obs.size(0)],compute_pi=False, compute_log_pi=False)
 				kl_divergence_ori_aug_2 = self.kl_divergence(mu_ori.detach(), log_std_ori.detach(), mu_2, log_std_2)
-				kl_loss = kl_divergence_ori_aug_1 + (kl_divergence_ori_aug_2).mean()
+				kl_loss = kl_loss + (kl_divergence_ori_aug_2).mean()
 
 		if step % self.actor_update_freq == 0:
 			if self.double_aug:
@@ -222,7 +225,7 @@ class VRE(SAC):
 				if self.double_aug:
 					mu_2, _, _, log_std_2 = self.actor(obs_aug_2[0:obs.size(0)],compute_pi=False, compute_log_pi=False)
 					kl_divergence_ori_aug_2 = self.kl_divergence(mu_ori.detach(), log_std_ori.detach(), mu_2, log_std_2)
-					kl_loss = kl_divergence_ori_aug_1 + (kl_divergence_ori_aug_2).mean()
+					kl_loss = kl_loss + (kl_divergence_ori_aug_2).mean()
 
 				betta = self.kl_beta
 				if self.kl_lim:
