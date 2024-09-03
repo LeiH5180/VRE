@@ -110,8 +110,8 @@ def random_choose_double(x):
 	x_over_re = x_over.reshape(n,c,length)
 
 	for i in range(n):
-		mask_conv = mask_gen(length,ratio=0.3,n_i=c//3).to(x.device)
-		mask_over = mask_gen(length,ratio=0.0,n_i=c//3).to(x.device)
+		mask_conv = mask_gen(length,ratio=0.5,n_i=c//3).to(x.device)
+		mask_over = mask_gen(length,ratio=0.333,n_i=c//3).to(x.device)
 		x_re[i] = (x_re[i]*mask_conv + x_conv_re[i]*(1-mask_conv))
 		x_re[i] = (x_re[i]*mask_over + x_over_re[i]*(1-mask_over))
 
@@ -130,15 +130,19 @@ def random_choose(x):
 	x_over_re = x_over.reshape(n,c,length)
 
 	for i in range(n):
-		mask_over = mask_gen(length,ratio=0.3,n_i=c//3).to(x.device)
+		mask_over = mask_gen(length,ratio=0.5,n_i=c//3).to(x.device)
 		x_re[i] = (x_re[i]*mask_over + x_over_re[i]*(1-mask_over))
 
 	time_cost = time.time() - start_time
 	print(f'time cost: {time_cost:.6f}')
 	return x_re.reshape(n,c,h,w)
 
-def mask_gen(length, ratio=0.3, n_i=1):
-	rand_n = random.randint(math.floor(length*ratio),length)
+def mask_gen(length, ratio=0.5, n_i=1):
+	'''
+	ratio: the expected ratio of number of pixels to be masked
+	'''
+	assert ratio <=0.5 , 'ratio must not larger than 0.5'
+	rand_n = random.randint(0,math.floor(length*2*ratio))
 	mask_out = torch.tensor([])
 	for i in range(n_i):
 		idx = random.sample(range(length), rand_n)
