@@ -6,6 +6,9 @@ import torchvision.datasets as datasets
 import kornia
 import utils
 import os
+import random
+import math
+import time
 from arguments import parse_args
 
 places_dataloader = None
@@ -16,7 +19,7 @@ args = parse_args()
 global de_num
 de_num = args.de_num
 
-def _load_places(batch_size=256, image_size=84, num_workers=1, use_val=False):
+def _load_places(batch_size=3000, image_size=84, num_workers=16, use_val=False):
 	global places_dataloader, places_iter
 	partition = 'val' if use_val else 'train'
 	print(f'Loading {partition} partition of places365_standard...')
@@ -94,6 +97,55 @@ def random_conv(x):
 		total_out = out if i == 0 else torch.cat([total_out, out], axis=0)
 	return total_out.reshape(n, c, h, w)
 
+def random_choose_double(x):
+	start_time = time.time()
+	assert isinstance(x, torch.Tensor), 'image input must be tensor'
+	n, c, h, w = x.shape
+	x_conv = random_conv(x)
+	x_over = random_overlay(x)
+	length = h*w
+
+	x_re= x.clone().reshape(n,c,length)
+	x_conv_re = x_conv.reshape(n,c,length)
+	x_over_re = x_over.reshape(n,c,length)
+
+	for i in range(n):
+		mask_conv = mask_gen(length,ratio=0.3,n_i=c//3).to(x.device)
+		mask_over = mask_gen(length,ratio=0.0,n_i=c//3).to(x.device)
+		x_re[i] = (x_re[i]*mask_conv + x_conv_re[i]*(1-mask_conv))
+		x_re[i] = (x_re[i]*mask_over + x_over_re[i]*(1-mask_over))
+
+	time_cost = time.time() - start_time
+	print(f'time cost: {time_cost:.6f}')
+	return x_re.reshape(n,c,h,w)
+
+def random_choose(x):
+	start_time = time.time()
+	assert isinstance(x, torch.Tensor), 'image input must be tensor'
+	n, c, h, w = x.shape
+	x_over = random_overlay(x)
+	length = h*w
+
+	x_re= x.clone().reshape(n,c,length)
+	x_over_re = x_over.reshape(n,c,length)
+
+	for i in range(n):
+		mask_over = mask_gen(length,ratio=0.3,n_i=c//3).to(x.device)
+		x_re[i] = (x_re[i]*mask_over + x_over_re[i]*(1-mask_over))
+
+	time_cost = time.time() - start_time
+	print(f'time cost: {time_cost:.6f}')
+	return x_re.reshape(n,c,h,w)
+
+def mask_gen(length, ratio=0.3, n_i=1):
+	rand_n = random.randint(math.floor(length*ratio),length)
+	mask_out = torch.tensor([])
+	for i in range(n_i):
+		idx = random.sample(range(length), rand_n)
+		mask = torch.ones(length)
+		mask[idx] = 0
+		mask_out = torch.cat([mask_out, mask.unsqueeze(0).repeat(3, 1)])
+	return mask_out
 
 def batch_from_obs(obs, batch_size=32):
 	"""Copy a single observation along the batch dimension"""
