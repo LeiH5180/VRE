@@ -18,6 +18,7 @@ class SAC(object):
 		self.encoder_update_freq = args.encoder_update_freq
 		self.de_num = args.de_num
 		self.add_VRE = args.add_VRE
+		self.VRE_para = args.VRE_para
 		self.algorithm = args.algorithm
 
 		shared_cnn = m.SharedCNN(obs_shape, args.num_shared_layers, args.num_filters).cuda(self.de_num)    # shared_11,filters_32
@@ -180,7 +181,7 @@ class SAC(object):
 		dis_Q = torch.norm((Q_ori.detach()-Q_aug),p=2)
 		dis_emb = torch.norm((emb_ori.detach()-emb_aug),p=2)
 		loss_critic_encoder_5 = torch.norm(dis_Q/norm2_Q_ori.detach()-dis_emb/norm2_emb_ori.detach(),p=2)
-		loss_critic_encoder = loss_critic_encoder_5 * self.Vre_para
+		loss_critic_encoder = loss_critic_encoder_5 * self.VRE_para
 
 		self.critic_encoder_optimizer.zero_grad()
 		loss_critic_encoder.backward()
@@ -188,6 +189,8 @@ class SAC(object):
 
 	def update(self, replay_buffer, L, step):
 		obs, action, reward, next_obs, not_done = replay_buffer.sample()
+		obs = augmentations.random_shift(obs)
+		# obs = augmentations.random_conv(obs)
 
 		self.update_critic(obs, action, reward, next_obs, not_done, L, step)
 

@@ -7,7 +7,10 @@ import json
 import requests
 import matplotlib.pyplot as plt
 import warnings
-from arguments import parse_args
+import os
+import sys
+sys.path.append(os.getcwd())
+from src.arguments import parse_args
 
 args = parse_args()
 de_num = args.de_num

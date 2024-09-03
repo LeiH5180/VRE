@@ -23,7 +23,7 @@ def main():
     test_buffer_2 = torch.load('saved_buffers/test_buffer_2_500000.pt')
     test_buffer_3 = torch.load('saved_buffers/test_buffer_3_500000.pt')
     # RL更新所用的frame是9*84*84，一次采了三张图片
-    batch_size = 1000
+    batch_size = 200
     obses_rb = buffer_sample_obs(replay_buffer, batch_size)
     obses_tb1 = buffer_sample_obs(test_buffer_1, batch_size)
     obses_tb2 = buffer_sample_obs(test_buffer_2, batch_size)
@@ -40,6 +40,13 @@ def main():
                           ,torch.tensor([(np.array(obses_tb3[i][1]).reshape(3,3,84,84)) for i in range(batch_size)]).reshape(-1,3,84,84)],dim=0).float().to(f'cuda:{de_num}')
 
     # ---------use augmentations ---------
+    # random_idx = torch.randint(0, 6*batch_size, (3*batch_size,))
+    # rb_tensor_rand = rb_tensor[random_idx]
+    # with torch.no_grad():
+    #     rb_shift = torch.cat([rb_tensor_rand, random_shift(rb_tensor_rand)])
+    #     rb_conv = torch.cat([rb_tensor_rand, random_conv(rb_tensor_rand)])
+    #     rb_over = torch.cat([rb_tensor_rand, random_overlay(rb_tensor_rand)])
+
     with torch.no_grad():
         rb_shift = random_shift(rb_tensor)
         rb_conv = random_conv(rb_tensor)
@@ -49,14 +56,15 @@ def main():
     RS = resnet_model('resnet50')
     umap_model = UMAP(n_components=2, n_neighbors=15, min_dist=0.1, densmap = True, dens_lambda = 2)
 
+
     with torch.no_grad():
-        out_rb = RS.resnet_model(rb_tensor)
-        out_shift = RS.resnet_model(rb_shift)
-        out_conv = random_conv(rb_conv)
-        out_over = random_overlay(rb_over)
-        out_tb1 = RS.resnet_model(tb1_tensor)
-        out_tb2 = RS.resnet_model(tb2_tensor)
-        out_tb3 = RS.resnet_model(tb3_tensor)
+        out_rb = RS.resnet_model(rb_tensor/255)
+        out_shift = RS.resnet_model(rb_shift/255)
+        out_conv = RS.resnet_model(rb_conv/255)
+        out_over = RS.resnet_model(rb_over/255)
+        out_tb1 = RS.resnet_model(tb1_tensor/255)
+        out_tb2 = RS.resnet_model(tb2_tensor/255)
+        out_tb3 = RS.resnet_model(tb3_tensor/255)
     
     length = out_rb.shape[0]
     all_out = torch.cat([out_rb,out_shift,out_conv,out_over,out_tb1,out_tb2,out_tb3],dim=0).cpu()
@@ -76,18 +84,18 @@ def main():
 
     palette = sns.color_palette("Set1",5)
     sns.set_palette(palette)
-    aug_mode = ["train_state","train_shift","train_conv","train_over"]
+    aug_mode = ["train_ori","train_shift","train_conv","train_over"]
     test_mode = ["color_hard","video_easy","video_hard"]
     palette=['#DC565F', '#3E61AC']
-    for j in range(4):
-        for i in range(3):       
-            df_d = pd.concat([df[df["label"] == aug_mode[j]],df[df["label"] == test_mode[i]]], ignore_index=True)
+    for i in range(4):
+        for j in range(3):
+            df_d = pd.concat([df[df["label"] == aug_mode[i]],df[df["label"] == test_mode[j]]], ignore_index=True)
             df_d.to_csv("encoding.csv")
             plt.figure()
             legend = True
-            sns.scatterplot(data=df_d, x="x", y="y", hue="label", style='label',sizes='label', s=20 , palette=palette, legend = legend)
+            sns.scatterplot(data=df_d, x="x", y="y", hue="label", style='label',sizes='label', s=10 , palette=palette, legend = legend)
             
-            plt.savefig(f"{aug_mode}--{test_mode[i]}.png", dpi=300)
+            plt.savefig(f"{aug_mode[i]}--{test_mode[j]}.png", dpi=300)
             plt.close()
 
 

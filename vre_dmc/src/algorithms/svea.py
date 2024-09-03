@@ -28,7 +28,7 @@ class SVEA(SAC):
 								 target_Q2) - self.alpha.detach() * log_pi
 			target_Q = reward + (not_done * self.discount * target_V)
 
-		if self.double_aug:
+		if not self.double_aug:
 			obs = utils.cat(obs, augmentations.random_conv(obs.clone()))
 			action = utils.cat(action, action)
 			target_Q = utils.cat(target_Q, target_Q)

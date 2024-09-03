@@ -178,7 +178,7 @@ def main(args):
 			# Save agent periodically
 			if step > start_step and step % args.save_freq == 0: 
 				torch.save(agent, os.path.join(model_dir, f'{step}.pt'))
-			if args.save_buffer and step % args.buffer_save_freq == 0:
+			if args.save_buffer and step % args.buffer_save_freq == 0 and step != 0:
 				torch.save(replay_buffer, os.path.join(work_dir, f'replay_buffer_{step}.pt'))
 				torch.save(test_buffer_1, os.path.join(work_dir, f'test_buffer_1_{step}.pt'))
 				torch.save(test_buffer_2, os.path.join(work_dir, f'test_buffer_2_{step}.pt'))
@@ -188,6 +188,7 @@ def main(args):
 			writter.add_scalar('train_episode_reward', episode_reward, step)
 
 			obs = env.reset()
+			# obs/=255
 			done = False
 			episode_reward = 0
 			episode_step = 0
@@ -218,6 +219,7 @@ def main(args):
 
 		# Take step
 		next_obs, reward, done, _ = env.step(action)
+		# next_obs/=255
 		done_bool = 0 if episode_step + 1 == env._max_episode_steps else float(done)
 		replay_buffer.add(obs, action, reward, next_obs, done_bool)
 		episode_reward += reward

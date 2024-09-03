@@ -193,6 +193,8 @@ class Actor(nn.Module):
 
 	def forward(self, x, compute_pi=True, compute_log_pi=True, detach=False):
 		x = self.encoder(x, detach)
+		# with torch.no_grad():    # use initial encoder params
+		# 	x = self.encoder(x, detach)
 		mu, log_std = self.mlp(x).chunk(2, dim=-1)
 		log_std = torch.tanh(log_std)
 		log_std = self.log_std_min + 0.5 * (
@@ -245,6 +247,8 @@ class Critic(nn.Module):
 
 	def forward(self, x, action, detach=False):
 		x = self.encoder(x, detach)
+		# with torch.no_grad():    # use initial encoder params
+		# 	x = self.encoder(x, detach)
 		return self.Q1(x, action), self.Q2(x, action)
 
 
