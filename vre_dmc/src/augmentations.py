@@ -103,39 +103,36 @@ def random_choose_double(x):
 	n, c, h, w = x.shape
 	x_conv = random_conv(x)
 	x_over = random_overlay(x)
-	length = h*w
 
-	x_re= x.clone().reshape(n,c,length)
-	x_conv_re = x_conv.reshape(n,c,length)
-	x_over_re = x_over.reshape(n,c,length)
+	mask = (torch.rand(n, c//3, h, w) > 0.5).float().to(x.device)  # 大于0.5的为1，否则为0
+	mask_expanded = mask.unsqueeze(2).repeat(1, 1, 3, 1, 1)
+	mask_conv = mask_expanded.view(n, c, h, w)
+	mask = (torch.rand(n, c//3, h, w) > 0.333).float().to(x.device)
+	mask_expanded = mask.unsqueeze(2).repeat(1, 1, 3, 1, 1)
+	mask_over = mask_expanded.view(n, c, h, w)
 
-	for i in range(n):
-		mask_conv = mask_gen(length,ratio=0.6,n_i=c//3).to(x.device)
-		mask_over = mask_gen(length,ratio=0.4,n_i=c//3).to(x.device)
-		x_re[i] = (x_re[i]*mask_conv + x_conv_re[i]*(1-mask_conv))
-		x_re[i] = (x_re[i]*mask_over + x_over_re[i]*(1-mask_over))
+	x_re = (x*mask_conv + x_conv*(1-mask_conv))
+	x_re = (x_re*mask_over + x_over*(1-mask_over))
 
 	time_cost = time.time() - start_time
 	print(f'time cost: {time_cost:.6f}')
-	return x_re.reshape(n,c,h,w)
+	return x_re
 
 def random_choose(x):
 	start_time = time.time()
 	assert isinstance(x, torch.Tensor), 'image input must be tensor'
 	n, c, h, w = x.shape
 	x_over = random_overlay(x)
-	length = h*w
 
-	x_re= x.clone().reshape(n,c,length)
-	x_over_re = x_over.reshape(n,c,length)
+	mask = (torch.rand(n, c//3, h, w) > 0.5).float().to(x.device)  # 大于0.5的为1，否则为0
+	mask_expanded = mask.unsqueeze(2).repeat(1, 1, 3, 1, 1)
+	mask_over = mask_expanded.view(n, c, h, w)
 
-	for i in range(n):
-		mask_over = mask_gen(length,ratio=0.4,n_i=c//3).to(x.device)
-		x_re[i] = (x_re[i]*mask_over + x_over_re[i]*(1-mask_over))
+	x_re = (x*mask_over + x_over*(1-mask_over))
 
 	time_cost = time.time() - start_time
 	print(f'time cost: {time_cost:.6f}')
-	return x_re.reshape(n,c,h,w)
+	return x_re
 
 def mask_gen(length, ratio=0.4, n_i=1):
 	'''
@@ -153,6 +150,8 @@ def mask_gen(length, ratio=0.4, n_i=1):
 		mask[idx] = 0
 		mask_out = torch.cat([mask_out, mask.unsqueeze(0).repeat(3, 1)])
 	return mask_out
+
+
 
 def batch_from_obs(obs, batch_size=32):
 	"""Copy a single observation along the batch dimension"""
@@ -234,3 +233,5 @@ def view_as_windows_cuda(x, window_shape):
 	strides = tuple(list(x[slices].stride()) + list(x.stride()))
 
 	return x.as_strided(new_shape, strides)
+
+	
