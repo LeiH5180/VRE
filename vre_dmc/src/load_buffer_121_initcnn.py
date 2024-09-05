@@ -74,10 +74,10 @@ def main():
         length = out_rb.shape[0]
         # ----------------sample&cat--------------------------------
         # out_shift = torch.cat([out_rb[random_idx(length),:],out_shift[random_idx(length),:]])
-        # out_conv = torch.cat([out_shift[random_idx(length),:],out_conv[random_idx(length),:]])
-        # out_over = torch.cat([out_shift[random_idx(length),:],out_over[random_idx(length),:]])
-        # out_cho_double = torch.cat([out_shift[random_idx(length),:],out_cho_double[random_idx(length),:]])
-        # out_cho = torch.cat([out_shift[random_idx(length),:],out_cho[random_idx(length),:]])
+        out_conv = torch.cat([out_shift[random_idx(length),:],out_conv[random_idx(length),:]])
+        out_over = torch.cat([out_shift[random_idx(length),:],out_over[random_idx(length),:]])
+        out_cho_double = torch.cat([out_shift[random_idx(length),:],out_cho_double[random_idx(length),:]])
+        out_cho = torch.cat([out_shift[random_idx(length),:],out_cho[random_idx(length),:]])
 
     # aug_mode = ["train_shift_conv", "train_shift_over", "train_shift_cho_double","train_shift_cho"]
     aug_mode = ["train_ori","train_shift", "train_conv", "train_over", "train_cho_double","train_cho"]
