@@ -15,10 +15,11 @@ def parse_args():
 	parser.add_argument('--eval_mode_1', default='color_hard', type=str)
 	parser.add_argument('--eval_mode_2', default='video_easy', type=str)
 	parser.add_argument('--eval_mode_3', default='video_hard', type=str)
-	parser.add_argument('--if_base', default='vre', type=str)
+	parser.add_argument('--if_base', default='svea', type=str)
 	parser.add_argument('--only_VRE', default=True, type=str)    # no KL_loss for actor
-	parser.add_argument('--add_VRE', default=True, type=str)
-	parser.add_argument('--double_aug', default=True, type=str)    # if conv and over
+	parser.add_argument('--add_VRE', default=False, type=str)
+	parser.add_argument('--double_aug', default=False, type=str)    # if conv and over
+	parser.add_argument('--if_obscat', default=False, type=str)
 	parser.add_argument('--over_rand', default=False, type=str)    # if rand para for overlay
 
 
@@ -27,16 +28,16 @@ def parse_args():
 	parser.add_argument('--kl_tar', default=0.25, type=int)
 	parser.add_argument('--auto_para', default=False, type=str)
 	parser.add_argument('--auto_Q', default=False, type=str)
-	parser.add_argument('--Vre_para', default=0.1, type=int)
+	parser.add_argument('--VRE_para', default=0.1, type=int)
 	parser.add_argument('--critic_para', default=1, type=int)
 	
 	
 	# agent
-	parser.add_argument('--algorithm', default='vre', type=str)
+	parser.add_argument('--algorithm', default='svea', type=str)
 	parser.add_argument('--train_steps', default='500000', type=str)    
 	parser.add_argument('--discount', default=0.99, type=float)
-	parser.add_argument('--init_steps', default=1, type=int)    # 1000
-	parser.add_argument('--batch_size', default=128, type=int)
+	parser.add_argument('--init_steps', default=1000, type=int)    # 1000
+	parser.add_argument('--batch_size', default=128, type=int)    # 128
 	parser.add_argument('--hidden_dim', default=1024, type=int)
 
 	# actor
@@ -88,17 +89,17 @@ def parse_args():
 
 	# eval
 	parser.add_argument('--save_freq', default='500k', type=str)
-	parser.add_argument('--eval_freq', default='10000', type=str)
-	parser.add_argument('--eval_episodes', default=0, type=int)
+	parser.add_argument('--eval_freq', default='5000', type=str)
+	parser.add_argument('--eval_episodes', default=10, type=int)
 	parser.add_argument('--distracting_cs_intensity', default=0.5, type=float)
 
 	# misc
 	parser.add_argument('--seed', default=3, type=int)
-	parser.add_argument('--de_num', default=0, type=int)
-	parser.add_argument('--log_dir', default='logs_VRE_walkerrun_common_lr0.0001_upf1_obscat_autopara0.02_Q', type=str)
+	parser.add_argument('--de_num', default=7, type=int)
+	parser.add_argument('--log_dir', default='logs_svea_walkerwalk_choosedouble_nocat', type=str)
 	parser.add_argument('--save_video', default=False, action='store_true')
 	parser.add_argument('--save_buffer', default=False, type=str)
-	parser.add_argument('--buffer_save_freq', default='70k', type=str)
+	parser.add_argument('--buffer_save_freq', default=100000, type=int)
 
 	args = parser.parse_args()
 

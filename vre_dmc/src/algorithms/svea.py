@@ -16,6 +16,7 @@ class SVEA(SAC):
 		self.b_beta = args.b_beta
 		self.g_gamma = args.g_gamma
 		self.double_aug = args.double_aug
+		self.if_obscat = args.if_obscat
 		if self.double_aug:
 			self.b_beta /= 2
 			self.g_gamma /= 2
@@ -28,8 +29,11 @@ class SVEA(SAC):
 								 target_Q2) - self.alpha.detach() * log_pi
 			target_Q = reward + (not_done * self.discount * target_V)
 
+		obs_aug_2 = None
+
 		if not self.double_aug:
-			obs = utils.cat(obs, augmentations.random_conv(obs.clone()))
+			obs_aug_1 = augmentations.random_choose_double(obs.clone())
+			obs = utils.cat(obs, obs_aug_1)
 			action = utils.cat(action, action)
 			target_Q = utils.cat(target_Q, target_Q)
 
@@ -59,14 +63,19 @@ class SVEA(SAC):
 		critic_loss.backward()
 		self.critic_optimizer.step()
 			
+		return obs_aug_1, obs_aug_2
 
 	def update(self, replay_buffer, L, step):
 		obs, action, reward, next_obs, not_done = replay_buffer.sample_svea()    # obs.shape:128*9*84*84
 
-		self.update_critic(obs, action, reward, next_obs, not_done, L, step)
+		obs_aug_1, obs_aug_2 = self.update_critic(obs, action, reward, next_obs, not_done, L, step)
 
 		if step % self.actor_update_freq == 0:
-
+			if self.if_obscat:
+				if obs_aug_2 is not None:
+					obs = utils.cat(obs, obs_aug_1, obs_aug_2)
+				else:
+					obs = utils.cat(obs, obs_aug_1)
 			self.update_actor_and_alpha(obs, L, step)
 
 		if step % self.critic_target_update_freq == 0:

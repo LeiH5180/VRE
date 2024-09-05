@@ -98,7 +98,7 @@ def random_conv(x):
 	return total_out.reshape(n, c, h, w)
 
 def random_choose_double(x):
-	start_time = time.time()
+	# start_time = time.time()
 	assert isinstance(x, torch.Tensor), 'image input must be tensor'
 	n, c, h, w = x.shape
 	x_conv = random_conv(x)
@@ -114,12 +114,12 @@ def random_choose_double(x):
 	x_re = (x*mask_conv + x_conv*(1-mask_conv))
 	x_re = (x_re*mask_over + x_over*(1-mask_over))
 
-	time_cost = time.time() - start_time
-	print(f'time cost: {time_cost:.6f}')
+	# time_cost = time.time() - start_time
+	# print(f'time cost: {time_cost:.6f}')
 	return x_re
 
 def random_choose(x):
-	start_time = time.time()
+	# start_time = time.time()
 	assert isinstance(x, torch.Tensor), 'image input must be tensor'
 	n, c, h, w = x.shape
 	x_over = random_overlay(x)
@@ -130,8 +130,8 @@ def random_choose(x):
 
 	x_re = (x*mask_over + x_over*(1-mask_over))
 
-	time_cost = time.time() - start_time
-	print(f'time cost: {time_cost:.6f}')
+	# time_cost = time.time() - start_time
+	# print(f'time cost: {time_cost:.6f}')
 	return x_re
 
 def mask_gen(length, ratio=0.4, n_i=1):
