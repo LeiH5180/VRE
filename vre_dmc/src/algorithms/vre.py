@@ -25,7 +25,7 @@ class VRE(SAC):
 		else:
 			self.overlay = augmentations.random_overlay
 		self.encoder_update_freq = args.encoder_update_freq
-		self.only_VRE = args.only_VRE
+		self.only_encoder = args.only_encoder
 
 		self.eval_freq = args.eval_freq
 		self.kl_beta = args.kl_beta
@@ -99,7 +99,7 @@ class VRE(SAC):
 		# --------------------------------------------------------------------
 
 	def update_encoder(self, obs_1, action_1, obs_2, action_2, obs_1_aug_1 = None, obs_1_aug_2 = None):
-		if not self.double_aug:
+		if self.double_aug:
 			if len(obs_2) != 0:
 				obs_2_aug_1 = self.overlay(obs_2.clone())
 				obs_aug_1 = torch.cat((obs_1_aug_1, obs_2_aug_1), dim=0)
@@ -214,7 +214,7 @@ class VRE(SAC):
 				# obs_aug = obs
 				obs_aug = torch.cat((obs, obs_aug_1[0:obs.size(0)]), dim=0)
 
-			if self.only_VRE:
+			if self.only_encoder:
 				self.update_actor_and_alpha(obs_aug, L, step)
 			else:    # add KL_loss to actor
 				mu_ori, _, _, log_std_ori = self.actor(obs,compute_pi=False, compute_log_pi=False)
