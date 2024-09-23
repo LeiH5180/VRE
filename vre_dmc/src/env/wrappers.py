@@ -7,9 +7,13 @@ import torch.nn.functional as F
 import torchvision.transforms.functional as TF
 import dmc2gym
 import utils
+import time
 from collections import deque
+from arguments import parse_args
+from skimage.color import rgb2hsv
+import random
 
-
+args = parse_args()
 def make_env(
 		domain_name,
 		task_name,
@@ -171,14 +175,14 @@ class FrameStack(gym.Wrapper):
 		obs = self.env.reset()    # array
 		for _ in range(self._k):
 			self._frames.append(obs)
-		return self._get_obs()
+		return np.array(self._frames).reshape(-1,args.image_size,args.image_size)
 
 	def step(self, action):
 		obs, reward, done, info = self.env.step(action)
 		self._frames.append(obs)
-		return self._get_obs(), reward, done, info
+		return np.array(self._frames).reshape(-1,args.image_size,args.image_size), reward, done, info
 
-	def _get_obs(self):
+	def _get_obs(self):    # not used
 		assert len(self._frames) == self._k
 		return utils.LazyFrames(list(self._frames))
 
@@ -208,31 +212,16 @@ def do_green_screen(x, bg):
 	"""Removes green background from observation and replaces with bg; not optimized for speed"""
 	assert isinstance(x, np.ndarray) and isinstance(bg, np.ndarray), 'inputs must be numpy arrays'
 	assert x.dtype == np.uint8 and bg.dtype == np.uint8, 'inputs must be uint8 arrays'
-	
-	# Get image sizes
-	x_h, x_w = x.shape[1:]
 
-	# Convert to RGBA images
-	im = TF.to_pil_image(torch.ByteTensor(x))
-	im = im.convert('RGBA')
-	pix = im.load()
-	bg = TF.to_pil_image(torch.ByteTensor(bg))
-	bg = bg.convert('RGBA')
-	bg = bg.load()
+	h,s,v = rgb2hsv(x.transpose(1,2,0)).transpose(2,0,1)
 
-	# Replace pixels
-	for x in range(x_w):
-		for y in range(x_h):
-			r, g, b, a = pix[x, y]
-			h_ratio, s_ratio, v_ratio = rgb_to_hsv(r / 255., g / 255., b / 255.)
-			h, s, v = (h_ratio * 360, s_ratio * 255, v_ratio * 255)
+	h_min, s_min, v_min = (0.27779, 0.31373, 0.27451)    #
+	h_max, s_max, v_max = (0.51389, 1.0, 1.0)
 
-			min_h, min_s, min_v = (100, 80, 70)
-			max_h, max_s, max_v = (185, 255, 255)
-			if min_h <= h <= max_h and min_s <= s <= max_s and min_v <= v <= max_v:
-				pix[x, y] = bg[x, y]
+	mask = (h >= h_min) & (h <= h_max) & (s >= s_min) & (s <= s_max) & (v >= v_min) & (v <= v_max)
+	mask = np.repeat(mask[np.newaxis, :, :], 3, axis=0).astype(np.int8)
 
-	return np.moveaxis(np.array(im).astype(np.uint8), -1, 0)[:3]
+	return (x * (1-mask) + bg * mask).astype(np.uint8)
 
 
 class VideoWrapper(gym.Wrapper):
@@ -276,7 +265,8 @@ class VideoWrapper(gym.Wrapper):
 		return np.moveaxis(buf, -1, 1)
 
 	def _reset_video(self):
-		self._index = (self._index + 1) % self._num_videos
+		# self._index = (self._index + 1) % self._num_videos
+		self._index = random.randint(0,self._num_videos-1)
 		self._data = self._load_video(self._video_paths[self._index])
 
 	def reset(self):
